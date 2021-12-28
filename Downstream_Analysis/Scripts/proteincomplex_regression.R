@@ -1,7 +1,7 @@
 ################### Protein complexes analysis - regression ####################
 
-# Running permutations on changes in correlation with age to find significant 
-# differences
+# For each gene-pair, running permutations on changes in correlation with age 
+# to find significant differences
 
 # Author: Isabela Gerdes Gyuricza
 # Date: 06_07_2021
@@ -21,7 +21,7 @@ library(tidyverse)
 ################################################################################
 ############ load data
 
-setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
+#setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
 
 # Load QTLviewer data 
 
@@ -314,8 +314,8 @@ age_trend_permut_protein_results <- sapply(
   age_trend_permut_protein_results,bind_rows, 
                 USE.NAMES = TRUE, simplify = FALSE)
 
-save(age_trend_permut_protein_results,
-     file = "Downstream_Analysis/Results/proteincomplex_perms_protein.RData")
+# save(age_trend_permut_protein_results,
+#      file = "Downstream_Analysis/Results/proteincomplex_perms_protein.RData")
 
 
 # Using bigEmpPVals function from DGCA to compute the pvals from the permutation
@@ -726,8 +726,8 @@ age_trend_permut_gene_results <- permut_age_trend(df,1000)
 age_trend_permut_gene_results <- sapply(age_trend_permut_gene_results,bind_rows, 
                                         USE.NAMES = TRUE, simplify = FALSE)
 
-save(age_trend_permut_gene_results, 
-     file = "Downstream_Analysis/Results/proteincomplex_perms_transcript.RData")
+# save(age_trend_permut_gene_results, 
+#      file = "Downstream_Analysis/Results/proteincomplex_perms_transcript.RData")
 
 
 # Using bigEmpPVals function from DGCA to compute the pvals from the permutation
@@ -922,384 +922,353 @@ dev.off()
 rm(age_trend_real_gene_list, d, empirical_pvals, i, SIZE,plot)
 
 
-test_gene <- complex_gene_age_trend_final_significant %>% 
-  separate(pair_comparison, 
-           into = c("gene_1","gene_2"),
-           sep = "_") %>% 
-  select(complex_name, gene_1, gene_2, CorrTrend)
-
-test_protein <- complex_protein_age_trend_final_significant %>% 
-  separate(pair_comparison, 
-           into = c("protein_1","protein_2"),
-           sep = "_") %>% 
-  select(complex_name, protein_1, protein_2, CorrTrend)
-
-test_gene %>% 
-  inner_join(test_protein, by = "complex_name") %>% 
-  filter(gene_1 == protein_1 & gene_2 == protein_2 | 
-           gene_1 == protein_2 & gene_2 == protein_1) 
-
-# There are 5 pair comparisons in which RNA cor increase with age and protein
-# cor decrease with age: 
-
-# A tibble: 5 x 7
-# complex_name                           gene_1 gene_2     CorrTrend.x   protein_1 protein_2     CorrTrend.y
-# <chr>                                 <chr>   <chr>        <dbl>         <chr>     <chr>         <dbl>
-#   1 COP9_signalosome                    Cops3  Cops8        0.501       Cops3     Cops8          -0.508
-# 2 Mitochondrial_complex_V               Atp5h  Atp5pb       0.255       Atp5h     Atp5pb         -0.552
-# 3 Mitochondrial_complex_IV              Cox5a  Cox7c        0.299       Cox5a     Cox7c          -0.628
-# 4 multi-eIF_complex                     Eif3b  Eif3i        0.811       Eif3b     Eif3i          -0.307
-# 5 SMG-1-Upf1-eRF1-eRF3_complex_(SURF)   Etf1   Gspt2        0.485       Etf1      Gspt2          -0.423
-
-rm(test_gene, order_rule, test_protein)
-
 # Now, plotting only the proteasome for publication and ordering by 
 # categories. 
 
-pdf("Downstream_Analysis/Results/proteincomplex_age_trend_proteasome.pdf",
-    width = 8, height = 14)
-  
-  d <- age_trend_real_gene %>% 
-    filter(complex_name == "26S_Proteasome") %>% 
-    mutate(signif = ifelse(pair_comparison %in% 
-                                    complex_gene_age_trend_final_significant$pair_comparison[
-                                      complex_gene_age_trend_final_significant$complex_name == "26S_Proteasome"],
-                           "TRUE", "FALSE")) %>% 
-    mutate(signif = as.logical(signif)) %>% 
-    select(pair_comparison,CorrTrend,signif) %>% 
-    separate(pair_comparison, into = c("gene_1","gene_2"),sep = "_")
-  
-  
-  ORDER <- unique(
-               c(
-                 unique(d$gene_1),
-                   unique(d$gene_2)))
-  
-  ORDER <- factor(ORDER, levels = rev(
-    c(
-    paste0("Psma",seq(1:7)),
-    paste0("Psmb",seq(1:10)),
-    paste0("Psmc",seq(1:6)),
-    paste0("Psmd",seq(1:4)),
-    "Psmd4.1",
-    paste0("Psmd",c(5:9)),
-    paste0("Psmd",c(11:14)),
-    paste0("Psme",seq(1:4)),
-    "Psmf1","Psmg1"
-  )))
-  
-  ORDER <- as.character(
-    sort(
-      ORDER)
-  )
-  
-  
-  d <- d %>% 
-    mutate(
-      gene_1_old = factor(gene_1, 
-                          levels = ORDER),
-      gene_2_old = factor(gene_2, levels = ORDER)
-    ) %>% 
-    mutate(
-      gene_1 = ifelse(
-        as.numeric(gene_1_old) < as.numeric(gene_2_old),
-        as.character(gene_1_old), as.character(gene_2_old)
-      ),
-      gene_2 = ifelse(
-        as.numeric(gene_1_old) < as.numeric(gene_2_old),
-        as.character(gene_2_old), as.character(gene_1_old)
-      )
-    ) %>% 
-    mutate(
-      gene_1 = factor(gene_1, levels = rev(ORDER)),
-      gene_2 = factor(gene_2, levels = ORDER)
-    )
-  
-  SIZE <- 32/length(unique(d$gene_1))
-  
-  #quartz()
-  plot1 <- d %>% 
-    ggplot(aes(gene_1, gene_2)) +
-    geom_hline(yintercept = seq(2, length(levels(d$gene_2))) - .5, 
-               color="#eeeeee", size = .25) + 
-    geom_vline(xintercept = seq(2, length(levels(d$gene_1))) - .5, 
-               color="#eeeeee", size = .25) +
-    ggtitle("Transcript level") +
-    theme_bw() +
-    xlab('Gene symbol') +
-    ylab('Gene symbol') +
-    geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
-    geom_point(data = d %>% filter(signif), color='black', shape = 8, 
-               size = SIZE, stroke = SIZE/2) +
-    scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
-                         name = "Age effect") +
-    scale_x_discrete(
-      drop = FALSE, 
-      limits = levels(d$gene_1)[-1], position = "top"
-    ) +
-    scale_y_discrete(
-      drop = FALSE, 
-      limits = levels(d$gene_2)[-1]
-    ) +
-    theme(
-      axis.text.x=element_text(angle=90, size = 10, colour = "black"),
-      axis.text.y=element_text(size = 10, colour = 'black'),
-      axis.ticks=element_blank(),
-      axis.line=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major = element_blank()
-    )
-
-d <- age_trend_real_protein %>% 
-  filter(complex_name == "26S_Proteasome") %>% 
-  mutate(signif = ifelse(pair_comparison %in% 
-                           complex_protein_age_trend_final_significant$pair_comparison[
-                             complex_protein_age_trend_final_significant$complex_name == "26S_Proteasome"],
-                         "TRUE", "FALSE")) %>% 
-  mutate(signif = as.logical(signif)) %>% 
-  select(pair_comparison,CorrTrend, signif) %>% 
-  separate(pair_comparison, into = c("protein_1","protein_2"),sep = "_")
-
-
-d <- d %>% 
-  mutate(
-    protein_1_old = factor(protein_1, 
-                           levels = ORDER),
-    protein_2_old = factor(protein_2, 
-                           levels = ORDER)
-  ) %>% 
-  mutate(
-    protein_1 = ifelse(
-      as.numeric(protein_1_old) < as.numeric(protein_2_old),
-      as.character(protein_1_old), as.character(protein_2_old)
-    ),
-    protein_2 = ifelse(
-      as.numeric(protein_1_old) < as.numeric(protein_2_old),
-      as.character(protein_2_old), as.character(protein_1_old)
-    )
-  ) %>% 
-  mutate(
-    protein_1 = factor(protein_1, 
-                       levels = rev(ORDER)),
-    protein_2 = factor(protein_2, 
-                       levels = ORDER)
-  )
-
-SIZE <- 32/length(unique(d$protein_1))
-
-#quartz()
-plot2 <- d %>% 
-  ggplot(aes(protein_1, protein_2)) +
-  geom_hline(yintercept = seq(2, length(levels(d$protein_2))) - .5, 
-             color="#eeeeee", size = .25) + 
-  geom_vline(xintercept = seq(2, length(levels(d$protein_1))) - .5, 
-             color="#eeeeee", size = .25) +
-  ggtitle("Protein level") +
-  theme_bw() +
-  xlab('Gene symbol') +
-  ylab('Gene symbol') +
-  geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
-  geom_point(data = d %>% filter(signif), color='black', shape = 8, 
-             size = SIZE, stroke = SIZE/2) +
-  scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
-                       name = "Age effect") +
-  scale_x_discrete(
-    drop = FALSE, 
-    limits = levels(d$protein_1)[-1], position = "top"
-  ) +
-  scale_y_discrete(
-    drop = FALSE, 
-    limits = levels(d$protein_2)[-1]
-  ) +
-  theme(
-    axis.text.x=element_text(angle=90, size = 10, colour = "black"),
-    axis.text.y=element_text(size = 10, colour = 'black'),
-    axis.ticks=element_blank(),
-    axis.line=element_blank(),
-    panel.border=element_blank(),
-    panel.grid.major = element_blank()
-  )
-
-cowplot::plot_grid(plotlist = list(plot1,plot2),ncol = 1)
-
-dev.off()
-
-rm(d, plot1, plot2, ORDER, SIZE)
-
-
-
-# Now, plotting supplemental figures for Large_Drosha_complex, Nuclear_pore_complex_(NPC),
-# cytoplasmic_ribosomal_large_subunit, chaperonin-containing_T-complex, 
-# Mitochondrial_complex_I, Mitochondrial_complex_II, Mitochondrial_complex_III, 
-# Mitochondrial_complex_IV, Mitochondrial_complex_V
-
-pdf("Downstream_Analysis/Results/proteincomplex_supplemental_age_effects.pdf",
-    width = 18, height = 8)
-
-for (i in c(
-           'chaperonin-containing_T-complex', 
-           'Suv39h1',
-           'dynactin_complex',
-           'multi-eIF_complex',
-           'Large_Drosha_complex', 
-           'Ubiquilin-proteasome_complex',
-           'TNF-alpha/NF-kappa_B_signaling_complex_7',
-           'SMG-1-Upf1-eRF1-eRF3_complex_(SURF)',
-           'COP9_signalosome',
-            'cytoplasmic_ribosomal_large_subunit',
-            'Nuclear_pore_complex_(NPC)',
-            'cytoplasmic_ribosomal_large_subunit', 
-            'Mitochondrial_complex_I', 
-            'Mitochondrial_complex_II', 
-            'Mitochondrial_complex_III', 
-            'Mitochondrial_complex_IV', 
-            'Mitochondrial_complex_V')) {
-
-  d <- age_trend_real_gene %>% 
-    filter(complex_name == i) %>% 
-    mutate(signif = ifelse(pair_comparison %in% 
-                             complex_gene_age_trend_final_significant$pair_comparison[
-                               complex_gene_age_trend_final_significant$complex_name == i],
-                           "TRUE", "FALSE")) %>% 
-    mutate(signif = as.logical(signif)) %>% 
-    select(pair_comparison,CorrTrend,signif) %>% 
-    separate(pair_comparison, into = c("gene_1","gene_2"),sep = "_")
-  
-  d <- d %>% 
-    mutate(
-      gene_1_old = factor(gene_1, levels = levels(order_rule[[i]]$gene_symbol)),
-      gene_2_old = factor(gene_2, levels = levels(order_rule[[i]]$gene_symbol))
-    ) %>% 
-    mutate(
-      gene_1 = ifelse(
-        as.numeric(gene_1_old) < as.numeric(gene_2_old),
-        as.character(gene_1_old), as.character(gene_2_old)
-      ),
-      gene_2 = ifelse(
-        as.numeric(gene_1_old) < as.numeric(gene_2_old),
-        as.character(gene_2_old), as.character(gene_1_old)
-      )
-    ) %>% 
-    mutate(
-      gene_1 = factor(gene_1, levels = levels(order_rule[[i]]$gene_symbol)),
-      gene_2 = factor(gene_2, levels = levels(order_rule[[i]]$gene_symbol))
-    )
-  
-  SIZE <- 32/length(unique(d$gene_1))
-  
-  #quartz()
-  plot1 <- d %>% 
-    ggplot(aes(gene_1, gene_2)) +
-    geom_hline(yintercept = seq(2, length(levels(d$gene_2))) - .5, 
-               color="#eeeeee", size = .25) + 
-    geom_vline(xintercept = seq(2, length(levels(d$gene_1))) - .5, 
-               color="#eeeeee", size = .25) +
-    ggtitle("Transcript") +
-    theme_bw() +
-    theme(title = element_text(size = 15)) +
-    xlab('') +
-    ylab('') +
-    geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
-    geom_point(data = d %>% filter(signif), color='black', shape = 8, 
-               size = SIZE, stroke = SIZE/2) +
-    scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
-                         name = "Age effect") +
-    scale_x_discrete(
-      drop = FALSE, 
-      limits = levels(d$gene_1)[-length(levels(d$gene_1))]
-    ) +
-    scale_y_discrete(
-      drop = FALSE, 
-      limits = levels(d$gene_2)[-1]
-    ) +
-    theme(
-      axis.text.x=element_text(angle=90, size = 10, colour = "black"),
-      axis.text.y=element_text(size = 10, colour = 'black'),
-      axis.ticks=element_blank(),
-      axis.line=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major = element_blank()
-    )
-  
-  
-  d <- age_trend_real_protein %>% 
-    filter(complex_name == i) %>% 
-    mutate(signif = ifelse(pair_comparison %in% 
-                             complex_protein_age_trend_final_significant$pair_comparison[
-                               complex_protein_age_trend_final_significant$complex_name == i],
-                           "TRUE", "FALSE")) %>% 
-    mutate(signif = as.logical(signif)) %>% 
-    select(pair_comparison,CorrTrend, signif) %>% 
-    separate(pair_comparison, into = c("protein_1","protein_2"),sep = "_")
-  
-  
-  d <- d %>% 
-    mutate(
-      protein_1_old = factor(protein_1, 
-                             levels = levels(order_rule[[i]]$gene_symbol)),
-      protein_2_old = factor(protein_2, 
-                             levels = levels(order_rule[[i]]$gene_symbol))
-    ) %>% 
-    mutate(
-      protein_1 = ifelse(
-        as.numeric(protein_1_old) < as.numeric(protein_2_old),
-        as.character(protein_1_old), as.character(protein_2_old)
-      ),
-      protein_2 = ifelse(
-        as.numeric(protein_1_old) < as.numeric(protein_2_old),
-        as.character(protein_2_old), as.character(protein_1_old)
-      )
-    ) %>% 
-    mutate(
-      protein_1 = factor(protein_1, 
-                         levels = levels(order_rule[[i]]$gene_symbol)),
-      protein_2 = factor(protein_2, 
-                         levels = levels(order_rule[[i]]$gene_symbol))
-    )
-  
-  SIZE <- 32/length(unique(d$protein_1))
-  
-  #quartz()
-  plot2 <- d %>% 
-    ggplot(aes(protein_1, protein_2)) +
-    geom_hline(yintercept = seq(2, length(levels(d$protein_2))) - .5, 
-               color="#eeeeee", size = .25) + 
-    geom_vline(xintercept = seq(2, length(levels(d$protein_1))) - .5, 
-               color="#eeeeee", size = .25) +
-    ggtitle("Protein") +
-    theme_bw() +
-    theme(title = element_text(size = 15)) +
-    xlab('') +
-    ylab('') +
-    geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
-    geom_point(data = d %>% filter(signif), color='black', shape = 8, 
-               size = SIZE, stroke = SIZE/2) +
-    scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
-                         name = "Age effect") +
-    scale_x_discrete(
-      drop = FALSE, 
-      limits = levels(d$protein_1)[-length(levels(d$protein_1))]
-    ) +
-    scale_y_discrete(
-      drop = FALSE, 
-      limits = levels(d$protein_2)[-1]
-    ) +
-    theme(
-      axis.text.x=element_text(angle=90, size = 10, colour = "black"),
-      axis.text.y=element_text(size = 10, colour = 'black'),
-      axis.ticks=element_blank(),
-      axis.line=element_blank(),
-      panel.border=element_blank(),
-      panel.grid.major = element_blank()
-    )
-  
-  print(cowplot::plot_grid(plot1, plot2, 
-                           ncol = 2, 
-                           labels = i,
-                           label_size = 20,
-                           vjust = 1.3,
-                           scale = 0.9))
-  
-}
-
-dev.off()
+# pdf("Downstream_Analysis/Results/proteincomplex_age_trend_proteasome.pdf",
+#     width = 8, height = 14)
+#   
+#   d <- age_trend_real_gene %>% 
+#     filter(complex_name == "26S_Proteasome") %>% 
+#     mutate(signif = ifelse(pair_comparison %in% 
+#                                     complex_gene_age_trend_final_significant$pair_comparison[
+#                                       complex_gene_age_trend_final_significant$complex_name == "26S_Proteasome"],
+#                            "TRUE", "FALSE")) %>% 
+#     mutate(signif = as.logical(signif)) %>% 
+#     select(pair_comparison,CorrTrend,signif) %>% 
+#     separate(pair_comparison, into = c("gene_1","gene_2"),sep = "_")
+#   
+#   
+#   ORDER <- unique(
+#                c(
+#                  unique(d$gene_1),
+#                    unique(d$gene_2)))
+#   
+#   ORDER <- factor(ORDER, levels = rev(
+#     c(
+#     paste0("Psma",seq(1:7)),
+#     paste0("Psmb",seq(1:10)),
+#     paste0("Psmc",seq(1:6)),
+#     paste0("Psmd",seq(1:4)),
+#     "Psmd4.1",
+#     paste0("Psmd",c(5:9)),
+#     paste0("Psmd",c(11:14)),
+#     paste0("Psme",seq(1:4)),
+#     "Psmf1","Psmg1"
+#   )))
+#   
+#   ORDER <- as.character(
+#     sort(
+#       ORDER)
+#   )
+#   
+#   
+#   d <- d %>% 
+#     mutate(
+#       gene_1_old = factor(gene_1, 
+#                           levels = ORDER),
+#       gene_2_old = factor(gene_2, levels = ORDER)
+#     ) %>% 
+#     mutate(
+#       gene_1 = ifelse(
+#         as.numeric(gene_1_old) < as.numeric(gene_2_old),
+#         as.character(gene_1_old), as.character(gene_2_old)
+#       ),
+#       gene_2 = ifelse(
+#         as.numeric(gene_1_old) < as.numeric(gene_2_old),
+#         as.character(gene_2_old), as.character(gene_1_old)
+#       )
+#     ) %>% 
+#     mutate(
+#       gene_1 = factor(gene_1, levels = rev(ORDER)),
+#       gene_2 = factor(gene_2, levels = ORDER)
+#     )
+#   
+#   SIZE <- 32/length(unique(d$gene_1))
+#   
+#   #quartz()
+#   plot1 <- d %>% 
+#     ggplot(aes(gene_1, gene_2)) +
+#     geom_hline(yintercept = seq(2, length(levels(d$gene_2))) - .5, 
+#                color="#eeeeee", size = .25) + 
+#     geom_vline(xintercept = seq(2, length(levels(d$gene_1))) - .5, 
+#                color="#eeeeee", size = .25) +
+#     ggtitle("Transcript level") +
+#     theme_bw() +
+#     xlab('Gene symbol') +
+#     ylab('Gene symbol') +
+#     geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
+#     geom_point(data = d %>% filter(signif), color='black', shape = 8, 
+#                size = SIZE, stroke = SIZE/2) +
+#     scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
+#                          name = "Age effect") +
+#     scale_x_discrete(
+#       drop = FALSE, 
+#       limits = levels(d$gene_1)[-1], position = "top"
+#     ) +
+#     scale_y_discrete(
+#       drop = FALSE, 
+#       limits = levels(d$gene_2)[-1]
+#     ) +
+#     theme(
+#       axis.text.x=element_text(angle=90, size = 10, colour = "black"),
+#       axis.text.y=element_text(size = 10, colour = 'black'),
+#       axis.ticks=element_blank(),
+#       axis.line=element_blank(),
+#       panel.border=element_blank(),
+#       panel.grid.major = element_blank()
+#     )
+# 
+# d <- age_trend_real_protein %>% 
+#   filter(complex_name == "26S_Proteasome") %>% 
+#   mutate(signif = ifelse(pair_comparison %in% 
+#                            complex_protein_age_trend_final_significant$pair_comparison[
+#                              complex_protein_age_trend_final_significant$complex_name == "26S_Proteasome"],
+#                          "TRUE", "FALSE")) %>% 
+#   mutate(signif = as.logical(signif)) %>% 
+#   select(pair_comparison,CorrTrend, signif) %>% 
+#   separate(pair_comparison, into = c("protein_1","protein_2"),sep = "_")
+# 
+# 
+# d <- d %>% 
+#   mutate(
+#     protein_1_old = factor(protein_1, 
+#                            levels = ORDER),
+#     protein_2_old = factor(protein_2, 
+#                            levels = ORDER)
+#   ) %>% 
+#   mutate(
+#     protein_1 = ifelse(
+#       as.numeric(protein_1_old) < as.numeric(protein_2_old),
+#       as.character(protein_1_old), as.character(protein_2_old)
+#     ),
+#     protein_2 = ifelse(
+#       as.numeric(protein_1_old) < as.numeric(protein_2_old),
+#       as.character(protein_2_old), as.character(protein_1_old)
+#     )
+#   ) %>% 
+#   mutate(
+#     protein_1 = factor(protein_1, 
+#                        levels = rev(ORDER)),
+#     protein_2 = factor(protein_2, 
+#                        levels = ORDER)
+#   )
+# 
+# SIZE <- 32/length(unique(d$protein_1))
+# 
+# #quartz()
+# plot2 <- d %>% 
+#   ggplot(aes(protein_1, protein_2)) +
+#   geom_hline(yintercept = seq(2, length(levels(d$protein_2))) - .5, 
+#              color="#eeeeee", size = .25) + 
+#   geom_vline(xintercept = seq(2, length(levels(d$protein_1))) - .5, 
+#              color="#eeeeee", size = .25) +
+#   ggtitle("Protein level") +
+#   theme_bw() +
+#   xlab('Gene symbol') +
+#   ylab('Gene symbol') +
+#   geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
+#   geom_point(data = d %>% filter(signif), color='black', shape = 8, 
+#              size = SIZE, stroke = SIZE/2) +
+#   scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
+#                        name = "Age effect") +
+#   scale_x_discrete(
+#     drop = FALSE, 
+#     limits = levels(d$protein_1)[-1], position = "top"
+#   ) +
+#   scale_y_discrete(
+#     drop = FALSE, 
+#     limits = levels(d$protein_2)[-1]
+#   ) +
+#   theme(
+#     axis.text.x=element_text(angle=90, size = 10, colour = "black"),
+#     axis.text.y=element_text(size = 10, colour = 'black'),
+#     axis.ticks=element_blank(),
+#     axis.line=element_blank(),
+#     panel.border=element_blank(),
+#     panel.grid.major = element_blank()
+#   )
+# 
+# cowplot::plot_grid(plotlist = list(plot1,plot2),ncol = 1)
+# 
+# dev.off()
+# 
+# rm(d, plot1, plot2, ORDER, SIZE)
+# 
+# 
+# 
+# # Now, plotting supplemental figures for Large_Drosha_complex, Nuclear_pore_complex_(NPC),
+# # cytoplasmic_ribosomal_large_subunit, chaperonin-containing_T-complex, 
+# # Mitochondrial_complex_I, Mitochondrial_complex_II, Mitochondrial_complex_III, 
+# # Mitochondrial_complex_IV, Mitochondrial_complex_V
+# 
+# pdf("Downstream_Analysis/Results/proteincomplex_supplemental_age_effects.pdf",
+#     width = 18, height = 8)
+# 
+# for (i in c(
+#            'chaperonin-containing_T-complex', 
+#            'Suv39h1',
+#            'dynactin_complex',
+#            'multi-eIF_complex',
+#            'Large_Drosha_complex', 
+#            'Ubiquilin-proteasome_complex',
+#            'TNF-alpha/NF-kappa_B_signaling_complex_7',
+#            'SMG-1-Upf1-eRF1-eRF3_complex_(SURF)',
+#            'COP9_signalosome',
+#             'cytoplasmic_ribosomal_large_subunit',
+#             'Nuclear_pore_complex_(NPC)',
+#             'cytoplasmic_ribosomal_large_subunit', 
+#             'Mitochondrial_complex_I', 
+#             'Mitochondrial_complex_II', 
+#             'Mitochondrial_complex_III', 
+#             'Mitochondrial_complex_IV', 
+#             'Mitochondrial_complex_V')) {
+# 
+#   d <- age_trend_real_gene %>% 
+#     filter(complex_name == i) %>% 
+#     mutate(signif = ifelse(pair_comparison %in% 
+#                              complex_gene_age_trend_final_significant$pair_comparison[
+#                                complex_gene_age_trend_final_significant$complex_name == i],
+#                            "TRUE", "FALSE")) %>% 
+#     mutate(signif = as.logical(signif)) %>% 
+#     select(pair_comparison,CorrTrend,signif) %>% 
+#     separate(pair_comparison, into = c("gene_1","gene_2"),sep = "_")
+#   
+#   d <- d %>% 
+#     mutate(
+#       gene_1_old = factor(gene_1, levels = levels(order_rule[[i]]$gene_symbol)),
+#       gene_2_old = factor(gene_2, levels = levels(order_rule[[i]]$gene_symbol))
+#     ) %>% 
+#     mutate(
+#       gene_1 = ifelse(
+#         as.numeric(gene_1_old) < as.numeric(gene_2_old),
+#         as.character(gene_1_old), as.character(gene_2_old)
+#       ),
+#       gene_2 = ifelse(
+#         as.numeric(gene_1_old) < as.numeric(gene_2_old),
+#         as.character(gene_2_old), as.character(gene_1_old)
+#       )
+#     ) %>% 
+#     mutate(
+#       gene_1 = factor(gene_1, levels = levels(order_rule[[i]]$gene_symbol)),
+#       gene_2 = factor(gene_2, levels = levels(order_rule[[i]]$gene_symbol))
+#     )
+#   
+#   SIZE <- 32/length(unique(d$gene_1))
+#   
+#   #quartz()
+#   plot1 <- d %>% 
+#     ggplot(aes(gene_1, gene_2)) +
+#     geom_hline(yintercept = seq(2, length(levels(d$gene_2))) - .5, 
+#                color="#eeeeee", size = .25) + 
+#     geom_vline(xintercept = seq(2, length(levels(d$gene_1))) - .5, 
+#                color="#eeeeee", size = .25) +
+#     ggtitle("Transcript") +
+#     theme_bw() +
+#     theme(title = element_text(size = 15)) +
+#     xlab('') +
+#     ylab('') +
+#     geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
+#     geom_point(data = d %>% filter(signif), color='black', shape = 8, 
+#                size = SIZE, stroke = SIZE/2) +
+#     scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
+#                          name = "Age effect") +
+#     scale_x_discrete(
+#       drop = FALSE, 
+#       limits = levels(d$gene_1)[-length(levels(d$gene_1))]
+#     ) +
+#     scale_y_discrete(
+#       drop = FALSE, 
+#       limits = levels(d$gene_2)[-1]
+#     ) +
+#     theme(
+#       axis.text.x=element_text(angle=90, size = 10, colour = "black"),
+#       axis.text.y=element_text(size = 10, colour = 'black'),
+#       axis.ticks=element_blank(),
+#       axis.line=element_blank(),
+#       panel.border=element_blank(),
+#       panel.grid.major = element_blank()
+#     )
+#   
+#   
+#   d <- age_trend_real_protein %>% 
+#     filter(complex_name == i) %>% 
+#     mutate(signif = ifelse(pair_comparison %in% 
+#                              complex_protein_age_trend_final_significant$pair_comparison[
+#                                complex_protein_age_trend_final_significant$complex_name == i],
+#                            "TRUE", "FALSE")) %>% 
+#     mutate(signif = as.logical(signif)) %>% 
+#     select(pair_comparison,CorrTrend, signif) %>% 
+#     separate(pair_comparison, into = c("protein_1","protein_2"),sep = "_")
+#   
+#   
+#   d <- d %>% 
+#     mutate(
+#       protein_1_old = factor(protein_1, 
+#                              levels = levels(order_rule[[i]]$gene_symbol)),
+#       protein_2_old = factor(protein_2, 
+#                              levels = levels(order_rule[[i]]$gene_symbol))
+#     ) %>% 
+#     mutate(
+#       protein_1 = ifelse(
+#         as.numeric(protein_1_old) < as.numeric(protein_2_old),
+#         as.character(protein_1_old), as.character(protein_2_old)
+#       ),
+#       protein_2 = ifelse(
+#         as.numeric(protein_1_old) < as.numeric(protein_2_old),
+#         as.character(protein_2_old), as.character(protein_1_old)
+#       )
+#     ) %>% 
+#     mutate(
+#       protein_1 = factor(protein_1, 
+#                          levels = levels(order_rule[[i]]$gene_symbol)),
+#       protein_2 = factor(protein_2, 
+#                          levels = levels(order_rule[[i]]$gene_symbol))
+#     )
+#   
+#   SIZE <- 32/length(unique(d$protein_1))
+#   
+#   #quartz()
+#   plot2 <- d %>% 
+#     ggplot(aes(protein_1, protein_2)) +
+#     geom_hline(yintercept = seq(2, length(levels(d$protein_2))) - .5, 
+#                color="#eeeeee", size = .25) + 
+#     geom_vline(xintercept = seq(2, length(levels(d$protein_1))) - .5, 
+#                color="#eeeeee", size = .25) +
+#     ggtitle("Protein") +
+#     theme_bw() +
+#     theme(title = element_text(size = 15)) +
+#     xlab('') +
+#     ylab('') +
+#     geom_tile(aes(fill = CorrTrend), color='#eeeeee') +
+#     geom_point(data = d %>% filter(signif), color='black', shape = 8, 
+#                size = SIZE, stroke = SIZE/2) +
+#     scale_fill_gradient2(low = "#2166ac", mid = "#f7f7f7", high = "#b2182b" , 
+#                          name = "Age effect") +
+#     scale_x_discrete(
+#       drop = FALSE, 
+#       limits = levels(d$protein_1)[-length(levels(d$protein_1))]
+#     ) +
+#     scale_y_discrete(
+#       drop = FALSE, 
+#       limits = levels(d$protein_2)[-1]
+#     ) +
+#     theme(
+#       axis.text.x=element_text(angle=90, size = 10, colour = "black"),
+#       axis.text.y=element_text(size = 10, colour = 'black'),
+#       axis.ticks=element_blank(),
+#       axis.line=element_blank(),
+#       panel.border=element_blank(),
+#       panel.grid.major = element_blank()
+#     )
+#   
+#   print(cowplot::plot_grid(plot1, plot2, 
+#                            ncol = 2, 
+#                            labels = i,
+#                            label_size = 20,
+#                            vjust = 1.3,
+#                            scale = 0.9))
+#   
+# }
+# 
+# dev.off()

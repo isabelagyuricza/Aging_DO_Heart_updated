@@ -1,6 +1,6 @@
 ##################### Protein complexes analysis overall #######################
 
-# This script uses the information on Greg's table 
+# This script uses the information on Ori's table 
 # to gather the genes and proteins of each complex
 # and check how their correlation is affected by age.
 
@@ -25,7 +25,7 @@ library(DGCA)
 ################################################################################
 ############ load data
 
-setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
+#setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
 
 # Load QTLviewer data 
 
@@ -577,12 +577,12 @@ df_new <- df %>%
 
 # Save for supplemental material  
 
-write.csv(df_new %>% 
-            select(-STD_Age_effect_Transcript, -STD_Age_effect_Protein,
-                   -Signif_Transcript, -Signif_Protein) %>%
-            rename(Size = size),
-  file = "Downstream_Analysis/Results/proteincomplex_overall_age_effects.csv",
-  row.names = FALSE)
+# write.csv(df_new %>% 
+#             select(-STD_Age_effect_Transcript, -STD_Age_effect_Protein,
+#                    -Signif_Transcript, -Signif_Protein) %>%
+#             rename(Size = size),
+#   file = "Downstream_Analysis/Results/proteincomplex_overall_age_effects.csv",
+#   row.names = FALSE)
 
 pdf("Downstream_Analysis/Results/proteincomplex_STD_overall_age_effects_2.pdf",
     width = 8,height = 7)

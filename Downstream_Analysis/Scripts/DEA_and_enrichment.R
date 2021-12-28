@@ -1437,6 +1437,20 @@ dea %>%
   theme_bw()
 dev.off()
 
+# Checking the number of significant genes according to different thresholds to 
+# make a table
+
+dea %>% 
+  group_by(Type, Test) %>% 
+  filter(adjusted_p < 0.01) %>% 
+  summarise(Count = length(Gene_ID))
+
+dea %>% 
+  group_by(Type, Test) %>% 
+  filter(adjusted_p < 0.1) %>% 
+  summarise(Count = length(Gene_ID))
+  
+
 # Now, gathering the common enrichments between protein and transcript for age
 
 transcript <- read.csv("Downstream_Analysis/Results/enrichment_age_transcripts.csv") %>% 
@@ -1652,6 +1666,227 @@ merge %>% filter(Transcript_enrichment & Protein_enrichment,
 # GOBP_CELLULAR_RESPONSE_TO_ALCOHOL 
 # Proteins: GOCC_ORGANELLE_SUBCOMPARTMENT, 
 # GOCC_GOLGI_APPARATUS, GOCC_ENDOSOME
+
+pdf("Downstream_Analysis/Results/enrichment_overlap_scatterplot.pdf", 
+    width = 10, height = 6)
+
+merge %>% 
+  select(Transcript_enrichment, Protein_enrichment, Gene_symbol, 
+         STD_Effect_transcript, STD_Effect_protein, Transcript_significant, 
+         Protein_significant) %>% 
+  unique() %>% 
+  mutate(Significance_level = ifelse(
+    Transcript_significant & Protein_significant, 
+    "Both",
+    ifelse(!Transcript_significant & !Protein_significant,
+           "Neither",
+           ifelse(Transcript_significant & !Protein_significant, 
+           "Transcript only",
+                     "Protein only")))) %>% 
+  filter(Transcript_enrichment & Protein_enrichment) %>% 
+  ggplot(aes(STD_Effect_transcript, STD_Effect_protein)) +
+  geom_point(size = 4, alpha = 0.5, aes(color = Significance_level)) +
+  geom_vline(xintercept = 0, col="black", linetype = "dashed", size = 1) +
+  geom_hline(yintercept = 0, col="black", linetype = "dashed", size = 1) +
+  scale_colour_manual(breaks = c('Transcript only', 'Protein only', 'Both', 'Neither'),
+                        values = c("firebrick","royalblue","mediumorchid4","gray")) +  
+  geom_text(aes(label = ifelse(
+    abs(STD_Effect_transcript) > 4 |
+    STD_Effect_protein > 7.5 |
+      STD_Effect_protein < -2,
+    Gene_symbol,"")), hjust = 0, vjust = 0, size = 5) +
+  scale_x_continuous(limits = c(-12,12)) +
+  scale_y_continuous(limits = c(-12,12)) +
+  theme_bw()
+
+dev.off()
+
+
+# Now, trying to plot two different volcano plots for transcripts and proteins
+
+# merge_edit <- merge %>% 
+#   filter(Transcript_enrichment & Protein_enrichment) %>%
+#   mutate(Pathway_name_transcript = ifelse(
+#     !Pathway_name_transcript %in% c("GOBP_CELL_ACTIVATION",
+#                                     "GOBP_EXOCYTOSIS",
+#                                     "GOBP_IMMUNE_EFFECTOR_PROCESS",
+#                                     "GOBP_RESPONSE_TO_TOPOLOGICALLY_INCORRECT_PROTEIN",
+#                                     "GOCC_SARCOPLASM",
+#                                     "GOBP_FATTY_ACID_CATABOLIC_PROCESS"),
+#     "Other or no pathway",
+#     Pathway_name_transcript)) %>% 
+#   mutate(Pathway_name_protein = ifelse(
+#     !Pathway_name_protein %in% c("GOBP_ENDOMEMBRANE_SYSTEM_ORGANIZATION",
+#                                  "GOCC_GOLGI_APPARATUS",
+#                                  "GOBP_CELLULAR_PROTEIN_CATABOLIC_PROCESS",
+#                                  "GOMF_UNFOLDED_PROTEIN_BINDING",
+#                                  "GOMF_STRUCTURAL_CONSTITUENT_OF_MUSCLE",
+#                                  "GOBP_FATTY_ACID_BETA_OXIDATION"),
+#     "Other or no pathway",
+#     Pathway_name_protein)) %>% 
+#   gather("Type_pathway", "pathway", 
+#          Pathway_name_transcript, Pathway_name_protein) %>% 
+#   mutate(Type_pathway = ifelse(
+#     Type_pathway == "Pathway_name_transcript",
+#     "Transcript",
+#     "Protein")) %>% 
+#   gather("Type_effect","Effect",Effect_transcript, Effect_protein) %>% 
+#     mutate(Type_effect = ifelse(
+#       Type_effect == "Effect_transcript",
+#       "Transcript",
+#       "Protein")) %>% 
+#   gather("Type_log10_p","log10_p",log10_p_transcript, log10_p_protein) %>% 
+#   mutate(Type_log10_p = ifelse(
+#       Type_log10_p == "log10_p_transcript",
+#       "Transcript",
+#       "Protein")) %>% 
+#   filter(Type_pathway == Type_effect &
+#            Type_effect == Type_log10_p) %>% 
+#   select(Type_pathway, pathway, Gene_symbol, Effect, log10_p) %>% 
+#   rename(Type = Type_pathway) %>% 
+#   unique()
+# 
+# 
+# pdf("Downstream_Analysis/Results/enrichment_overlap_volcanoplot.pdf", 
+#     width = 15, height = 5.5)
+# 
+# subset <- merge_edit %>% 
+#   filter(Type == "Transcript") %>% 
+#   mutate(pathway = factor(pathway, levels = c("GOBP_CELL_ACTIVATION",
+#                                               "GOBP_EXOCYTOSIS",
+#                                               "GOBP_IMMUNE_EFFECTOR_PROCESS",
+#                                               "GOBP_RESPONSE_TO_TOPOLOGICALLY_INCORRECT_PROTEIN",
+#                                               "GOCC_SARCOPLASM",
+#                                               "GOBP_FATTY_ACID_CATABOLIC_PROCESS",
+#                                               "Other or no pathway"))) %>% 
+#   arrange(pathway)
+# 
+# subset <- subset[!duplicated(subset$Gene_symbol),]
+# 
+# Transcript_plot <- ggplot(data = subset %>%  
+#                             filter(pathway == "Other or no pathway"),
+#                           aes(x = Effect, y = log10_p)) +
+#   geom_point(size = 3, alpha = 0.5, color = "grey") +
+#   geom_point(data = subset %>% 
+#                        filter(pathway %in% c("GOBP_CELL_ACTIVATION",
+#                                              "GOBP_EXOCYTOSIS",
+#                                              "GOBP_IMMUNE_EFFECTOR_PROCESS",
+#                                              "GOBP_RESPONSE_TO_TOPOLOGICALLY_INCORRECT_PROTEIN",
+#                                              "GOCC_SARCOPLASM",
+#                                              "GOBP_FATTY_ACID_CATABOLIC_PROCESS")) %>% 
+#                         mutate(pathway = factor(pathway, 
+#                                                 levels = c("GOBP_CELL_ACTIVATION",
+#                                                            "GOBP_EXOCYTOSIS",
+#                                                            "GOBP_IMMUNE_EFFECTOR_PROCESS",
+#                                                            "GOBP_RESPONSE_TO_TOPOLOGICALLY_INCORRECT_PROTEIN",
+#                                                            "GOCC_SARCOPLASM",
+#                                                            "GOBP_FATTY_ACID_CATABOLIC_PROCESS"))),
+#              aes(color = pathway), alpha = 0.75, size = 3) +
+#   scale_color_manual(
+#     values = c('#ae017e','#f768a1','#fbb4b9','#225ea8','#41b6c4','#a1dab4')) +
+#   geom_vline(xintercept = 0, col="black", linetype = "dashed", size = 1) +
+#   geom_hline(yintercept = 3.3, col="red", linetype = "dashed", size = 1) +
+#   geom_text(data = subset %>% 
+#                     filter(pathway == "Other or no pathway"),
+#             aes(label = ifelse(
+#               log10_p > 4.5 | 
+#                 log10_p > 3.3 &
+#                 abs(Effect) > 1,
+#               Gene_symbol,'')), hjust = 0,vjust = 0, size = 4) +
+#   geom_text(data = subset %>% 
+#               filter(pathway %in% c("GOBP_CELL_ACTIVATION",
+#                                      "GOBP_EXOCYTOSIS",
+#                                      "GOBP_IMMUNE_EFFECTOR_PROCESS",
+#                                      "GOBP_RESPONSE_TO_TOPOLOGICALLY_INCORRECT_PROTEIN",
+#                                      "GOCC_SARCOPLASM",
+#                                      "GOBP_FATTY_ACID_CATABOLIC_PROCESS")),
+#             aes(label = ifelse(
+#               log10_p > 4.5 | 
+#                 log10_p > 3.3 &
+#                 abs(Effect) > 1,
+#               Gene_symbol,'')), hjust = 0,vjust = 0, size = 5.5) +
+#   labs(x = "Age_effect",
+#        y = "-log10(p)") +
+#   theme_bw() +
+#   theme(legend.text = element_text(size = 2)) +
+#   xlim(-2,2) +
+#   ggtitle("Transcripts")
+# 
+# 
+# subset <- merge_edit %>% 
+#   filter(Type == "Protein") %>% 
+#   mutate(pathway = factor(pathway, levels = c("GOBP_ENDOMEMBRANE_SYSTEM_ORGANIZATION",
+#                                               "GOCC_GOLGI_APPARATUS",
+#                                               "GOBP_CELLULAR_PROTEIN_CATABOLIC_PROCESS",
+#                                               "GOMF_UNFOLDED_PROTEIN_BINDING",
+#                                               "GOMF_STRUCTURAL_CONSTITUENT_OF_MUSCLE",
+#                                               "GOBP_FATTY_ACID_BETA_OXIDATION",
+#                                               "Other or no pathway"))) %>% 
+#   arrange(pathway)
+# 
+# subset <- subset[!duplicated(subset$Gene_symbol),]
+# 
+# 
+# Protein_plot <- ggplot(data = subset %>%  
+#                          filter(Type == "Protein",
+#                                 pathway == "Other or no pathway"),
+#                        aes(x = Effect, y = log10_p)) +
+#   geom_point(size = 3, alpha = 0.5, color = "grey") +
+#   geom_point(data = subset %>% 
+#                filter(Type == "Protein",
+#                       pathway %in% c("GOBP_ENDOMEMBRANE_SYSTEM_ORGANIZATION",
+#                                      "GOCC_GOLGI_APPARATUS",
+#                                      "GOBP_CELLULAR_PROTEIN_CATABOLIC_PROCESS",
+#                                      "GOMF_UNFOLDED_PROTEIN_BINDING",
+#                                      "GOMF_STRUCTURAL_CONSTITUENT_OF_MUSCLE",
+#                                      "GOBP_FATTY_ACID_BETA_OXIDATION")) %>% 
+#                mutate(pathway = factor(pathway, 
+#                                        levels = c("GOBP_ENDOMEMBRANE_SYSTEM_ORGANIZATION",
+#                                                   "GOCC_GOLGI_APPARATUS",
+#                                                   "GOBP_CELLULAR_PROTEIN_CATABOLIC_PROCESS",
+#                                                   "GOMF_UNFOLDED_PROTEIN_BINDING",
+#                                                   "GOMF_STRUCTURAL_CONSTITUENT_OF_MUSCLE",
+#                                                   "GOBP_FATTY_ACID_BETA_OXIDATION"))),
+#              aes(color = pathway), alpha = 0.75, size = 3) +
+#   scale_color_manual(
+#     values = c('#ae017e','#f768a1','#fbb4b9','#225ea8','#41b6c4','#a1dab4')) +
+#   geom_vline(xintercept = 0, col="black", linetype = "dashed", size = 1) +
+#   geom_hline(yintercept = 2.3, col="red", linetype = "dashed", size = 1) +
+#   geom_text(data = subset %>% 
+#               filter(pathway == "Other or no pathway"),
+#             aes(label = ifelse(
+#             log10_p > 15 | 
+#               log10_p > 2.3 &
+#               Effect > 0.7 |
+#               log10_p > 2.3 &
+#               Effect < -0.3,
+#               Gene_symbol,'')), hjust = 0,vjust = 0, size = 4) +
+#   geom_text(data = subset %>% 
+#               filter(pathway %in% c("GOBP_ENDOMEMBRANE_SYSTEM_ORGANIZATION",
+#                                     "GOCC_GOLGI_APPARATUS",
+#                                     "GOBP_CELLULAR_PROTEIN_CATABOLIC_PROCESS",
+#                                     "GOMF_UNFOLDED_PROTEIN_BINDING",
+#                                     "GOMF_STRUCTURAL_CONSTITUENT_OF_MUSCLE",
+#                                     "GOBP_FATTY_ACID_BETA_OXIDATION")),
+#             aes(label = ifelse(
+#               log10_p > 15 | 
+#                 log10_p > 2.3 &
+#                 Effect > 0.7 |
+#                 log10_p > 2.3 &
+#                 Effect < -0.3,
+#               Gene_symbol,'')), hjust = 0,vjust = 0, size = 5.5) +
+#   labs(x = "Age_effect",
+#        y = "-log10(p)") +
+#   theme_bw() +
+#   theme(legend.text = element_text(size = 2)) +
+#   xlim(-1.5,1.5) +
+#   ggtitle("Proteins")
+# 
+# 
+# cowplot::plot_grid(Transcript_plot, Protein_plot, ncol = 2)
+# 
+# 
+# dev.off()
 
 # Using something similar to dotplot from clusterProfiler to plot a summary
 # of the enrichments. ince we have a lot of categories, selecting the top 5 that

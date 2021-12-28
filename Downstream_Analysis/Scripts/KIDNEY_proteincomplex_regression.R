@@ -23,11 +23,11 @@ library(tidyverse)
 ################################################################################
 ############ load data
 
-setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
+#setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
 
 # Load QTLviewer data 
 
-load("~/Downloads/JAC_DO_kidney_v5_03_21_2020.RData")
+load("Downstream_Analysis/Data/JAC_DO_kidney_v5_03_21_2020.RData")
 
 # Cleaning up what I don't need
 
@@ -415,9 +415,9 @@ save %>%
   arrange(desc(Prop)) %>% 
   View()
 
-write.csv(save,
-          file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_protein_pairs.csv",
-          row.names = FALSE)
+# write.csv(save,
+#           file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_protein_pairs.csv",
+#           row.names = FALSE)
 
 # Comparing with the heart.. 
 
@@ -828,9 +828,9 @@ save <- complex_gene_age_trend_final %>%
   select(Complex_name, Pair_comparison_ID, Pair_comparison_symbol, Age_effect, 
          p, adjusted_p)
 
-write.csv(save, 
-          file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_transcripts_pairs.csv",
-          row.names = FALSE)
+# write.csv(save, 
+#           file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_transcripts_pairs.csv",
+#           row.names = FALSE)
 
 # Check out which complexes have the largest proportion of pairs changing
 
@@ -849,44 +849,6 @@ save %>%
   unique() %>% 
   arrange(desc(Prop)) %>% 
   View()
-
-# Comparing with the heart.. 
-
-heart <- read_csv("Downstream_Analysis/Results/proteincomplex_transcripts_pairs.csv") %>% 
-  filter(adjusted_p < 0.1) %>% 
-  rename(Age_effect_heart = Age_effect) %>%
-  separate(Pair_comparison_symbol,c("Transcript_1_heart","Transcript_2_heart"),sep = "_") %>% 
-  select(Complex_name, Transcript_1_heart, Transcript_2_heart, Age_effect_heart) %>% 
-  mutate(Decrease_with_age_heart = ifelse(Age_effect_heart < 0, TRUE, FALSE))
-
-
-comp <- save %>% 
-  filter(adjusted_p < 0.1) %>% 
-  rename(Age_effect_kidney = Age_effect) %>%
-  separate(Pair_comparison_symbol,c("Transcript_1_kidney","Transcript_2_kidney"),sep = "_") %>% 
-  select(Complex_name, Transcript_1_kidney, Transcript_2_kidney, Age_effect_kidney) %>% 
-  mutate(Decrease_with_age_kidney = ifelse(Age_effect_kidney < 0, TRUE, FALSE)) %>% 
-  inner_join(heart, by = "Complex_name")
-
-comp$Complex_name %>% unique() %>% length() # There are 2 protein complexes that
-# have pairs that change for both heart and kidney (Mitochondrial_complex_V and 
-# nuclear_ubiquitin_ligase_complex)
-
-comp %>% 
-  filter(Transcript_1_kidney == Transcript_1_heart & 
-           Transcript_2_kidney == Transcript_2_heart | 
-           Transcript_1_kidney == Transcript_2_heart & 
-           Transcript_2_kidney == Transcript_1_heart) %>% dim()
-
-# There are 6 pairs that change for both kidney and heart. THey are all from the
-# mitochondrial complex V and they all increase with age.
-
-comp %>% filter(grepl("Mitochondrial_complex_",Complex_name)) %>% View()
-
-# Correlation for mitochondrial complex V increase with age on both tissues!
-
-
-rm(save)
 
 # Plot the heatmaps for the age trend for each pair
 

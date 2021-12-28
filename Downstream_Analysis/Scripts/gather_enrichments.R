@@ -150,9 +150,9 @@ enrich <- enrich_protein %>%
          adjusted_p_transcript, adjusted_p_pathway_protein, adjusted_p_pathway_transcript)
 
 # Saving for supplemental table 
-
-write.csv(enrich, file = "Downstream_Analysis/Results/gathered_enrichment.csv",
-          row.names = FALSE)
+# 
+# write.csv(enrich, file = "Downstream_Analysis/Results/gathered_enrichment.csv",
+#           row.names = FALSE)
 
 # enrich %>% 
 #   ggplot(aes(x = STD_Effect_transcript, y = STD_Effect_protein)) +

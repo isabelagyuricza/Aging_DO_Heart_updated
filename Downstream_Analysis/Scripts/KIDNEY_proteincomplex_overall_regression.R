@@ -27,11 +27,11 @@ library(DGCA)
 ################################################################################
 ############ load data
 
-setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
+#setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
 
 # Load QTLviewer data 
 
-load("~/Downloads/JAC_DO_kidney_v5_03_21_2020.RData")
+load("Downstream_Analysis/Data/JAC_DO_kidney_v5_03_21_2020.RData")
 
 # Cleaning up what I don't need
 
@@ -297,8 +297,8 @@ permut_age_trend <- function(df, times, seed = 01) {
 
 age_trend_permut_protein_results <- permut_age_trend(df,1000)
 
-save(age_trend_permut_protein_results, 
-     file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_overall_perms_protein.RData")
+# save(age_trend_permut_protein_results, 
+#      file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_overall_perms_protein.RData")
 
 
 # Using bigEmpPVals function from DGCA to compute the pvals from the permutation
@@ -499,9 +499,9 @@ permut_age_trend <- function(df, times, seed = 10) {
 age_trend_permut_gene_results <- permut_age_trend(df,1000)
 
 
-save(age_trend_permut_gene_results, 
-     file = "Downstream_Analysis/Results/proteincomplex_overall_perms_transcripts.RData")
-
+# save(age_trend_permut_gene_results, 
+#      file = "Downstream_Analysis/Results/proteincomplex_overall_perms_transcripts.RData")
+# 
 
 # Using bigEmpPVals function from DGCA to compute the pvals from the permutation
 
@@ -567,12 +567,12 @@ df_new <- df %>%
 
 # Save for supplemental material  
 
-write.csv(df_new %>% 
-            select(-STD_Age_effect_Transcript, -STD_Age_effect_Protein,
-                   -Signif_Transcript, -Signif_Protein) %>%
-            rename(Size = size),
-          file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_overall_age_effects.csv",
-          row.names = FALSE)
+# write.csv(df_new %>% 
+#             select(-STD_Age_effect_Transcript, -STD_Age_effect_Protein,
+#                    -Signif_Transcript, -Signif_Protein) %>%
+#             rename(Size = size),
+#           file = "Downstream_Analysis/Results/KIDNEY_proteincomplex_overall_age_effects.csv",
+#           row.names = FALSE)
 
 pdf("Downstream_Analysis/Results/KIDNEY_proteincomplex_STD_overall_age_effects_2.pdf",
     width = 13,height = 10)
@@ -622,50 +622,50 @@ dev.off()
 
 # Now, plotting the age effect against the size of the protein complex.
 
-rm(list = setdiff(ls(), "df"))
-
-results <- read_csv("Downstream_Analysis/Results/KIDNEY_proteincomplex_overall_age_effects.csv")
-
-df_new <- df %>% 
-  select(complex_name, protein.id) %>% 
-  unique() %>% 
-  group_by(complex_name) %>% 
-  summarise(size = length(protein.id)) %>% 
-  rename(Complex_name = complex_name) %>% 
-  inner_join(results) %>% 
-  mutate(STD_Age_effect_Transcript = Age_effect_Transcript/Age_effect_SE_Transcript,
-         STD_Age_effect_Protein = Age_effect_Protein/Age_effect_SE_Protein)
-
-pdf("Downstream_Analysis/Results/KIDNEY_proteincomplex_size_vs_effect.pdf",
-    width = 14,height =4)
-
-plot1 <- df_new %>% 
-  mutate(`Significant (FDR < 0.1)` = ifelse(adjusted_p_Transcript < 0.1,
-                                            TRUE,
-                                            FALSE)) %>% 
-  ggplot(aes(x = Age_effect_Transcript, y = size)) +
-  geom_point(aes(color = `Significant (FDR < 0.1)`), size = 5, alpha = 0.7) + 
-  geom_text(aes(label = ifelse(size > 15, Complex_name,
-                               "")), hjust = 0, vjust = 0, size = 3) +
-  scale_colour_manual(breaks = c('TRUE',"FALSE"),
-                      values = c("firebrick","gray")) +
-  theme_bw() +
-  ggtitle("Transcripts")
-
-plot2 <- df_new %>%
-  mutate(`Significant (FDR < 0.1)` = ifelse(adjusted_p_Protein < 0.1,
-                                            TRUE,
-                                            FALSE)) %>% 
-  ggplot(aes(x = Age_effect_Protein, y = size)) +
-  geom_point(aes(color = `Significant (FDR < 0.1)`), size = 5, alpha = 0.7) + 
-  geom_text(aes(label = ifelse(size > 14, Complex_name,
-                               "")), hjust = 0, vjust = 0, size = 3) +
-  scale_colour_manual(breaks = c('TRUE',"FALSE"),
-                      values = c("royalblue","gray")) +
-  theme_bw() +
-  ggtitle("Proteins")
-
-cowplot::plot_grid(plot1,plot2, ncol = 2)
-
-dev.off()
-
+# rm(list = setdiff(ls(), "df"))
+# 
+# results <- read_csv("Downstream_Analysis/Results/KIDNEY_proteincomplex_overall_age_effects.csv")
+# 
+# df_new <- df %>% 
+#   select(complex_name, protein.id) %>% 
+#   unique() %>% 
+#   group_by(complex_name) %>% 
+#   summarise(size = length(protein.id)) %>% 
+#   rename(Complex_name = complex_name) %>% 
+#   inner_join(results) %>% 
+#   mutate(STD_Age_effect_Transcript = Age_effect_Transcript/Age_effect_SE_Transcript,
+#          STD_Age_effect_Protein = Age_effect_Protein/Age_effect_SE_Protein)
+# 
+# pdf("Downstream_Analysis/Results/KIDNEY_proteincomplex_size_vs_effect.pdf",
+#     width = 14,height =4)
+# 
+# plot1 <- df_new %>% 
+#   mutate(`Significant (FDR < 0.1)` = ifelse(adjusted_p_Transcript < 0.1,
+#                                             TRUE,
+#                                             FALSE)) %>% 
+#   ggplot(aes(x = Age_effect_Transcript, y = size)) +
+#   geom_point(aes(color = `Significant (FDR < 0.1)`), size = 5, alpha = 0.7) + 
+#   geom_text(aes(label = ifelse(size > 15, Complex_name,
+#                                "")), hjust = 0, vjust = 0, size = 3) +
+#   scale_colour_manual(breaks = c('TRUE',"FALSE"),
+#                       values = c("firebrick","gray")) +
+#   theme_bw() +
+#   ggtitle("Transcripts")
+# 
+# plot2 <- df_new %>%
+#   mutate(`Significant (FDR < 0.1)` = ifelse(adjusted_p_Protein < 0.1,
+#                                             TRUE,
+#                                             FALSE)) %>% 
+#   ggplot(aes(x = Age_effect_Protein, y = size)) +
+#   geom_point(aes(color = `Significant (FDR < 0.1)`), size = 5, alpha = 0.7) + 
+#   geom_text(aes(label = ifelse(size > 14, Complex_name,
+#                                "")), hjust = 0, vjust = 0, size = 3) +
+#   scale_colour_manual(breaks = c('TRUE',"FALSE"),
+#                       values = c("royalblue","gray")) +
+#   theme_bw() +
+#   ggtitle("Proteins")
+# 
+# cowplot::plot_grid(plot1,plot2, ncol = 2)
+# 
+# dev.off()
+# 

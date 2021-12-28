@@ -24,11 +24,11 @@ library(tidyverse)
 ################################################################################
 ############ load data
 
-setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
+#setwd("~/Box/JAC_Heart_Data/Heart_Data_June2021")
 
 # Load QTLviewer data 
 
-load("~/Downloads/JAC_DO_kidney_v5_03_21_2020.RData")
+load("Downstream_analysis/Data/JAC_DO_kidney_v5_03_21_2020.RData")
 
 # Cleaning up what I don't need
 
